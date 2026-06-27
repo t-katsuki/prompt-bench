@@ -161,6 +161,14 @@
         align-items: center;
       }
 
+      .custom-model {
+        margin-top: 9px;
+      }
+
+      .custom-model[hidden] {
+        display: none;
+      }
+
       input[type="range"] {
         padding: 0;
         accent-color: var(--accent);
@@ -402,6 +410,14 @@
               <div class="field">
                 <label for="model">Model</label>
                 <select id="model" name="model"></select>
+                <input
+                  id="custom-model"
+                  class="custom-model"
+                  name="customModel"
+                  type="text"
+                  placeholder="Enter model id..."
+                  hidden
+                />
               </div>
             </div>
 
@@ -460,7 +476,7 @@
       const providerModels = {
         openai: {
           label: "OpenAI",
-          models: ["gpt-5.5", "gpt-5.4", "gpt-4.1", "gpt-4o-mini"],
+          models: ["gpt-5.5", "gpt-5.4", "gpt-5.4-mini", "gpt-5.4-nano", "gpt-4.1", "gpt-4o-mini"],
         },
         perplexity: {
           label: "Perplexity",
@@ -468,13 +484,24 @@
         },
         gemini: {
           label: "Gemini",
-          models: ["gemini-3.5-flash", "gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.5-flash-lite"],
+          models: [
+            "gemini-3.5-flash",
+            "gemini-3.1-pro-preview",
+            "gemini-3-flash-preview",
+            "gemini-3.1-flash-lite",
+            "gemini-2.5-pro",
+            "gemini-2.5-flash",
+            "gemini-2.5-flash-lite",
+          ],
         },
       };
+
+      const CUSTOM_MODEL_VALUE = "__custom";
 
       const form = document.querySelector("#bench-form");
       const providerSelect = document.querySelector("#provider");
       const modelSelect = document.querySelector("#model");
+      const customModel = document.querySelector("#custom-model");
       const tempRange = document.querySelector("#temperature");
       const tempValue = document.querySelector("#temperature-value");
       const maxTokens = document.querySelector("#max-tokens");
@@ -497,6 +524,7 @@
       syncModels();
 
       providerSelect.addEventListener("change", syncModels);
+      modelSelect.addEventListener("change", syncCustomModel);
       tempRange.addEventListener("input", () => {
         tempValue.value = tempRange.value;
       });
@@ -526,11 +554,12 @@
         runButton.disabled = true;
 
         const startedAt = new Date();
+        const model = getSelectedModel();
         const run = {
           id: crypto.randomUUID(),
           provider: providerSelect.value,
           providerLabel: providerModels[providerSelect.value].label,
-          model: modelSelect.value,
+          model,
           systemPrompt: systemPrompt.value,
           userPrompt: userPrompt.value,
           temperature: Number(tempRange.value),
@@ -578,7 +607,21 @@
 
       function syncModels() {
         const models = providerModels[providerSelect.value].models;
-        modelSelect.replaceChildren(...models.map((model) => new Option(model, model)));
+        modelSelect.replaceChildren(...models.map((model) => new Option(model, model)), new Option("Custom...", CUSTOM_MODEL_VALUE));
+        syncCustomModel();
+      }
+
+      function syncCustomModel() {
+        const isCustom = modelSelect.value === CUSTOM_MODEL_VALUE;
+        customModel.hidden = !isCustom;
+        customModel.required = isCustom;
+        if (isCustom) {
+          customModel.focus();
+        }
+      }
+
+      function getSelectedModel() {
+        return modelSelect.value === CUSTOM_MODEL_VALUE ? customModel.value.trim() : modelSelect.value;
       }
 
       function renderHistory() {
