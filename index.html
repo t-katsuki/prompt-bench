@@ -104,6 +104,13 @@
         margin-bottom: 13px;
       }
 
+      .field-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
       label {
         color: var(--muted);
         font-size: 12px;
@@ -198,6 +205,20 @@
         padding: 0 14px;
         background: #303642;
         color: var(--text);
+      }
+
+      .clear-input {
+        min-height: 28px;
+        padding: 0 10px;
+        background: #2b313b;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .clear-input:hover {
+        color: var(--text);
+        background: #373e4b;
       }
 
       .status {
@@ -399,12 +420,18 @@
             </div>
 
             <div class="field">
-              <label for="system-prompt">SYSTEM prompt</label>
+              <div class="field-head">
+                <label for="system-prompt">SYSTEM prompt</label>
+                <button class="clear-input" type="button" data-clear-target="system-prompt">Clear</button>
+              </div>
               <textarea id="system-prompt" name="systemPrompt" placeholder="You are a careful news editor..."></textarea>
             </div>
 
             <div class="field">
-              <label for="user-prompt">USER prompt</label>
+              <div class="field-head">
+                <label for="user-prompt">USER prompt</label>
+                <button class="clear-input" type="button" data-clear-target="user-prompt">Clear</button>
+              </div>
               <textarea id="user-prompt" class="user" name="userPrompt" placeholder="Paste the article, task, or test input here..." required></textarea>
             </div>
 
@@ -476,6 +503,15 @@
       tempValue.addEventListener("input", () => {
         const value = clamp(Number(tempValue.value), 0, 2);
         tempRange.value = Number.isFinite(value) ? value : 0.7;
+      });
+
+      document.querySelectorAll("[data-clear-target]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const target = document.getElementById(button.dataset.clearTarget);
+          target.value = "";
+          target.focus();
+          setStatus("");
+        });
       });
 
       clearButton.addEventListener("click", () => {
