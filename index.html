@@ -1,0 +1,634 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PromptBench</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #111318;
+        --panel: #181b22;
+        --panel-2: #20242e;
+        --line: #343a47;
+        --text: #f4f6fb;
+        --muted: #9ca6b8;
+        --accent: #7dd3fc;
+        --accent-2: #a7f3d0;
+        --danger: #fca5a5;
+        --warning: #fcd34d;
+        --shadow: 0 18px 52px rgba(0, 0, 0, 0.28);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: var(--bg);
+        color: var(--text);
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      button,
+      input,
+      select,
+      textarea {
+        font: inherit;
+      }
+
+      .app {
+        width: min(1360px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 24px 0 48px;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 18px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 28px;
+        line-height: 1.15;
+        letter-spacing: 0;
+      }
+
+      .subtitle {
+        margin: 6px 0 0;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .shell {
+        display: grid;
+        grid-template-columns: minmax(360px, 440px) minmax(0, 1fr);
+        gap: 18px;
+        align-items: start;
+      }
+
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        box-shadow: var(--shadow);
+      }
+
+      .composer {
+        position: sticky;
+        top: 18px;
+        padding: 16px;
+      }
+
+      .history {
+        min-height: 640px;
+        padding: 16px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+
+      .field {
+        display: grid;
+        gap: 7px;
+        margin-bottom: 13px;
+      }
+
+      label {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0;
+        text-transform: uppercase;
+      }
+
+      select,
+      input,
+      textarea {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        background: var(--panel-2);
+        color: var(--text);
+        outline: none;
+      }
+
+      select,
+      input {
+        height: 42px;
+        padding: 0 11px;
+      }
+
+      textarea {
+        min-height: 154px;
+        resize: vertical;
+        padding: 11px;
+        line-height: 1.5;
+      }
+
+      textarea.user {
+        min-height: 190px;
+      }
+
+      select:focus,
+      input:focus,
+      textarea:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(125, 211, 252, 0.12);
+      }
+
+      .range-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 64px;
+        gap: 10px;
+        align-items: center;
+      }
+
+      input[type="range"] {
+        padding: 0;
+        accent-color: var(--accent);
+      }
+
+      .actions {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        margin-top: 16px;
+      }
+
+      button {
+        border: 0;
+        border-radius: 7px;
+        cursor: pointer;
+        transition:
+          transform 120ms ease,
+          opacity 120ms ease,
+          background 120ms ease;
+      }
+
+      button:disabled {
+        cursor: not-allowed;
+        opacity: 0.6;
+      }
+
+      button:not(:disabled):active {
+        transform: translateY(1px);
+      }
+
+      .run {
+        flex: 1;
+        min-height: 44px;
+        background: var(--accent);
+        color: #08202d;
+        font-weight: 800;
+      }
+
+      .clear {
+        min-height: 44px;
+        padding: 0 14px;
+        background: #303642;
+        color: var(--text);
+      }
+
+      .status {
+        margin-top: 12px;
+        min-height: 22px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .status.error {
+        color: var(--danger);
+      }
+
+      .history-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 14px;
+        align-items: center;
+        border-bottom: 1px solid var(--line);
+        padding-bottom: 14px;
+        margin-bottom: 14px;
+      }
+
+      h2 {
+        margin: 0;
+        font-size: 18px;
+        letter-spacing: 0;
+      }
+
+      .count {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .empty {
+        display: grid;
+        place-items: center;
+        min-height: 520px;
+        border: 1px dashed var(--line);
+        border-radius: 8px;
+        color: var(--muted);
+        text-align: center;
+        padding: 24px;
+      }
+
+      .results {
+        display: grid;
+        gap: 14px;
+      }
+
+      .result {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #151922;
+        overflow: hidden;
+      }
+
+      .result.error-result {
+        border-color: rgba(252, 165, 165, 0.55);
+      }
+
+      .result-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        padding: 12px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 26px;
+        border-radius: 999px;
+        padding: 0 10px;
+        background: #29303b;
+        color: var(--text);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .pill.time {
+        color: #d7dde8;
+        font-weight: 600;
+      }
+
+      .pill.ok {
+        background: rgba(167, 243, 208, 0.14);
+        color: var(--accent-2);
+      }
+
+      .pill.bad {
+        background: rgba(252, 165, 165, 0.12);
+        color: var(--danger);
+      }
+
+      .prompt {
+        padding: 12px;
+        background: #11151d;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .prompt-title {
+        margin-bottom: 7px;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+
+      pre {
+        margin: 0;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        line-height: 1.55;
+        font-family:
+          "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+        font-size: 13px;
+      }
+
+      .answer {
+        padding: 14px 12px 16px;
+      }
+
+      .citations {
+        display: grid;
+        gap: 6px;
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid var(--line);
+      }
+
+      .citations a {
+        color: var(--accent);
+        overflow-wrap: anywhere;
+      }
+
+      @media (max-width: 900px) {
+        .app {
+          width: min(100% - 24px, 720px);
+          padding-top: 16px;
+        }
+
+        .topbar {
+          display: block;
+        }
+
+        .shell,
+        .grid {
+          grid-template-columns: 1fr;
+        }
+
+        .composer {
+          position: static;
+        }
+
+        .history {
+          min-height: 420px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="app">
+      <header class="topbar">
+        <div>
+          <h1>PromptBench</h1>
+          <p class="subtitle">Run the same SYSTEM / USER prompt shape across OpenAI, Perplexity, and Gemini.</p>
+        </div>
+      </header>
+
+      <div class="shell">
+        <section class="panel composer" aria-label="Prompt runner">
+          <form id="bench-form">
+            <div class="grid">
+              <div class="field">
+                <label for="provider">Provider</label>
+                <select id="provider" name="provider"></select>
+              </div>
+              <div class="field">
+                <label for="model">Model</label>
+                <select id="model" name="model"></select>
+              </div>
+            </div>
+
+            <div class="grid">
+              <div class="field">
+                <label for="temperature">Temperature</label>
+                <div class="range-row">
+                  <input id="temperature" name="temperature" type="range" min="0" max="2" step="0.1" value="0.7" />
+                  <input id="temperature-value" type="number" min="0" max="2" step="0.1" value="0.7" />
+                </div>
+              </div>
+              <div class="field">
+                <label for="max-tokens">Max tokens</label>
+                <input id="max-tokens" name="maxTokens" type="number" min="1" max="8192" step="1" value="1200" />
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="system-prompt">SYSTEM prompt</label>
+              <textarea id="system-prompt" name="systemPrompt" placeholder="You are a careful news editor..."></textarea>
+            </div>
+
+            <div class="field">
+              <label for="user-prompt">USER prompt</label>
+              <textarea id="user-prompt" class="user" name="userPrompt" placeholder="Paste the article, task, or test input here..." required></textarea>
+            </div>
+
+            <div class="actions">
+              <button class="run" id="run-button" type="submit">Run prompt</button>
+              <button class="clear" id="clear-button" type="button">Clear history</button>
+            </div>
+            <div id="status" class="status" aria-live="polite"></div>
+          </form>
+        </section>
+
+        <section class="panel history" aria-label="Run history">
+          <div class="history-head">
+            <h2>History</h2>
+            <div id="history-count" class="count">0 runs</div>
+          </div>
+          <div id="empty" class="empty">
+            <p>No runs yet. Results appear here newest first.</p>
+          </div>
+          <div id="results" class="results"></div>
+        </section>
+      </div>
+    </main>
+
+    <script>
+      const providerModels = {
+        openai: {
+          label: "OpenAI",
+          models: ["gpt-5.5", "gpt-5.4", "gpt-4.1", "gpt-4o-mini"],
+        },
+        perplexity: {
+          label: "Perplexity",
+          models: ["sonar-pro", "sonar", "sonar-reasoning-pro", "sonar-deep-research"],
+        },
+        gemini: {
+          label: "Gemini",
+          models: ["gemini-3.5-flash", "gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.5-flash-lite"],
+        },
+      };
+
+      const form = document.querySelector("#bench-form");
+      const providerSelect = document.querySelector("#provider");
+      const modelSelect = document.querySelector("#model");
+      const tempRange = document.querySelector("#temperature");
+      const tempValue = document.querySelector("#temperature-value");
+      const maxTokens = document.querySelector("#max-tokens");
+      const systemPrompt = document.querySelector("#system-prompt");
+      const userPrompt = document.querySelector("#user-prompt");
+      const runButton = document.querySelector("#run-button");
+      const clearButton = document.querySelector("#clear-button");
+      const statusEl = document.querySelector("#status");
+      const resultsEl = document.querySelector("#results");
+      const emptyEl = document.querySelector("#empty");
+      const countEl = document.querySelector("#history-count");
+
+      const history = [];
+
+      for (const [value, provider] of Object.entries(providerModels)) {
+        providerSelect.append(new Option(provider.label, value));
+      }
+
+      providerSelect.value = "perplexity";
+      syncModels();
+
+      providerSelect.addEventListener("change", syncModels);
+      tempRange.addEventListener("input", () => {
+        tempValue.value = tempRange.value;
+      });
+      tempValue.addEventListener("input", () => {
+        const value = clamp(Number(tempValue.value), 0, 2);
+        tempRange.value = Number.isFinite(value) ? value : 0.7;
+      });
+
+      clearButton.addEventListener("click", () => {
+        history.length = 0;
+        renderHistory();
+        setStatus("");
+      });
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        setStatus("Running...");
+        runButton.disabled = true;
+
+        const startedAt = new Date();
+        const run = {
+          id: crypto.randomUUID(),
+          provider: providerSelect.value,
+          providerLabel: providerModels[providerSelect.value].label,
+          model: modelSelect.value,
+          systemPrompt: systemPrompt.value,
+          userPrompt: userPrompt.value,
+          temperature: Number(tempRange.value),
+          maxTokens: Number(maxTokens.value),
+          createdAt: startedAt,
+          status: "pending",
+          text: "",
+          citations: [],
+        };
+
+        try {
+          const response = await fetch("/.netlify/functions/llm", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              provider: run.provider,
+              model: run.model,
+              systemPrompt: run.systemPrompt,
+              userPrompt: run.userPrompt,
+              temperature: run.temperature,
+              maxTokens: run.maxTokens,
+            }),
+          });
+
+          const data = await response.json().catch(() => ({}));
+
+          if (!response.ok) {
+            throw new Error(data.error || `Request failed with HTTP ${response.status}.`);
+          }
+
+          run.status = "ok";
+          run.text = data.text;
+          run.citations = Array.isArray(data.citations) ? data.citations : [];
+          setStatus("Done.");
+        } catch (error) {
+          run.status = "error";
+          run.text = error.message || "Unknown error.";
+          setStatus(run.text, true);
+        } finally {
+          history.unshift(run);
+          renderHistory();
+          runButton.disabled = false;
+        }
+      });
+
+      function syncModels() {
+        const models = providerModels[providerSelect.value].models;
+        modelSelect.replaceChildren(...models.map((model) => new Option(model, model)));
+      }
+
+      function renderHistory() {
+        emptyEl.hidden = history.length > 0;
+        countEl.textContent = `${history.length} ${history.length === 1 ? "run" : "runs"}`;
+        resultsEl.replaceChildren(...history.map(renderRun));
+      }
+
+      function renderRun(run) {
+        const article = document.createElement("article");
+        article.className = `result ${run.status === "error" ? "error-result" : ""}`;
+
+        const meta = document.createElement("div");
+        meta.className = "result-meta";
+        meta.append(
+          pill(run.providerLabel),
+          pill(run.model),
+          pill(formatDate(run.createdAt), "time"),
+          pill(run.status === "ok" ? "success" : "error", run.status === "ok" ? "ok" : "bad"),
+          pill(`temp ${run.temperature}`),
+          pill(`${run.maxTokens} max tokens`),
+        );
+
+        const prompt = document.createElement("div");
+        prompt.className = "prompt";
+        prompt.append(sectionTitle("SYSTEM prompt"), pre(run.systemPrompt.trim() || "(empty)"));
+
+        const answer = document.createElement("div");
+        answer.className = "answer";
+        answer.append(sectionTitle(run.status === "ok" ? "Result" : "Error"), pre(run.text));
+
+        if (run.citations.length > 0) {
+          const citations = document.createElement("div");
+          citations.className = "citations";
+          citations.append(sectionTitle("Citations"));
+          for (const citation of run.citations) {
+            const link = document.createElement("a");
+            link.href = String(citation);
+            link.target = "_blank";
+            link.rel = "noreferrer";
+            link.textContent = String(citation);
+            citations.append(link);
+          }
+          answer.append(citations);
+        }
+
+        article.append(meta, prompt, answer);
+        return article;
+      }
+
+      function sectionTitle(text) {
+        const div = document.createElement("div");
+        div.className = "prompt-title";
+        div.textContent = text;
+        return div;
+      }
+
+      function pre(text) {
+        const element = document.createElement("pre");
+        element.textContent = text;
+        return element;
+      }
+
+      function pill(text, variant = "") {
+        const span = document.createElement("span");
+        span.className = `pill ${variant}`;
+        span.textContent = text;
+        return span;
+      }
+
+      function setStatus(message, isError = false) {
+        statusEl.textContent = message;
+        statusEl.classList.toggle("error", isError);
+      }
+
+      function formatDate(date) {
+        return new Intl.DateTimeFormat(undefined, {
+          dateStyle: "medium",
+          timeStyle: "medium",
+        }).format(date);
+      }
+
+      function clamp(value, min, max) {
+        if (!Number.isFinite(value)) return value;
+        return Math.min(max, Math.max(min, value));
+      }
+    </script>
+  </body>
+</html>
