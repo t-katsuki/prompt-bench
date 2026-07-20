@@ -99,18 +99,15 @@ async function callOpenAICompatible(payload, provider, apiKey) {
 
   messages.push({ role: "user", content: payload.userPrompt.trim() });
 
+  const requestBody = buildOpenAICompatibleRequestBody(payload, messages);
+
   const response = await fetchWithTimeout(provider.endpoint, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      model: payload.model,
-      messages,
-      temperature: payload.temperature,
-      max_tokens: payload.maxTokens,
-    }),
+    body: JSON.stringify(requestBody),
   });
 
   const data = await safeJson(response);
@@ -130,6 +127,27 @@ async function callOpenAICompatible(payload, provider, apiKey) {
     citations: Array.isArray(data.citations) ? data.citations : [],
     usage: data.usage || null,
   };
+}
+
+function buildOpenAICompatibleRequestBody(payload, messages) {
+  const body = {
+    model: payload.model,
+    messages,
+    temperature: payload.temperature,
+  };
+
+  if (payload.provider === "openai" && usesMaxCompletionTokens(payload.model)) {
+    delete body.temperature;
+    body.max_completion_tokens = payload.maxTokens;
+    return body;
+  }
+
+  body.max_tokens = payload.maxTokens;
+  return body;
+}
+
+function usesMaxCompletionTokens(model) {
+  return /^gpt-[5-9](?:[.-]|$)/i.test(model.trim());
 }
 
 async function callGemini(payload, apiKey) {
