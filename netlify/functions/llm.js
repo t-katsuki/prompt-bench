@@ -16,6 +16,11 @@ const PROVIDERS = {
 };
 
 const DEFAULT_TIMEOUT_MS = 90_000;
+const REASONING_EFFORTS = ["none", "low", "medium", "high", "xhigh", "max"];
+
+function supportsReasoningEffort(payload) {
+  return payload.provider === "openai" && ["gpt-6-luna", "gpt-6-sol"].includes(payload.model);
+}
 
 exports.handler = async (event) => {
   if (event.httpMethod === "OPTIONS") {
@@ -69,6 +74,11 @@ function validatePayload(payload) {
   if (!PROVIDERS[payload.provider]) return "Choose a supported provider.";
   if (!isNonEmptyString(payload.model)) return "Choose a model.";
   if (!isNonEmptyString(payload.userPrompt)) return "USER prompt is required.";
+
+  if (supportsReasoningEffort(payload) && payload.reasoning_effort != null &&
+      payload.reasoning_effort !== "" && !REASONING_EFFORTS.includes(payload.reasoning_effort)) {
+    return "Choose a supported reasoning effort.";
+  }
 
   if (payload.systemPrompt != null && typeof payload.systemPrompt !== "string") {
     return "SYSTEM prompt must be text.";
@@ -139,6 +149,10 @@ function buildOpenAICompatibleRequestBody(payload, messages) {
   if (payload.provider === "openai" && usesMaxCompletionTokens(payload.model)) {
     delete body.temperature;
     body.max_completion_tokens = payload.maxTokens;
+    if (supportsReasoningEffort(payload) && REASONING_EFFORTS.includes(payload.reasoning_effort)) {
+      body.reasoning_effort = payload.reasoning_effort;
+      if (payload.reasoning_effort === "none") body.temperature = payload.temperature;
+    }
     return body;
   }
 
